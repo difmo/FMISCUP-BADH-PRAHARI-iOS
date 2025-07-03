@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'DebugmodeScreen.dart';
@@ -28,6 +29,15 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   static Future<void> checkDeveloperMode(BuildContext context) async {
+    if (!Platform.isAndroid) {
+      // ✅ Skip check on iOS
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      );
+      return;
+    }
+
     try {
       final bool isEnabled = await platformForDebug.invokeMethod(
         'isDeveloperModeEnabled',
@@ -40,13 +50,15 @@ class _SplashScreenState extends State<SplashScreen> {
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => const DashboardScreen(),
-          ), // Replace with your target screen
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
         );
       }
     } on PlatformException catch (e) {
       print("Failed to check developer mode: ${e.message}");
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      );
     }
   }
 
@@ -79,16 +91,15 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFbddffa), // Light blue solid background
+      backgroundColor: const Color(0xFFbddffa),
       body: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          // Removed `const`
           gradient: LinearGradient(
             colors: [
-              Color(0xFF66b5f8),
-              Colors.white.withOpacity(0.0), // ✅ Now allowed
-              Color(0xFF4fabf6),
+              const Color(0xFF66b5f8),
+              Colors.white.withOpacity(0.0),
+              const Color(0xFF4fabf6),
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -102,14 +113,6 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: 5),
               Image.asset('assets/image/logo.png', height: 250),
               const SizedBox(height: 10),
-              // const Text('सिंचनेन समृद्धि भवति',
-              //   style: TextStyle(
-              //     fontSize: 18,
-              //     fontWeight: FontWeight.bold,
-              //     color: Colors.red,
-              //   ),
-              // ),
-              // const SizedBox(height: 10),
               const Text(
                 'Flood Management Information System Centre',
                 style: TextStyle(
@@ -128,7 +131,6 @@ class _SplashScreenState extends State<SplashScreen> {
                   color: Colors.black,
                 ),
               ),
-              //   const SizedBox(height: 10),
               Image.asset('assets/image/district.png', height: 300),
             ],
           ),
