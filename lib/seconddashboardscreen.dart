@@ -224,9 +224,10 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
         _selectedDatedropdown == null) {
       showDialog(
         context: context,
+      
         builder:
             (ctx) => AlertDialog(
-              title: const Text("Validation Error"),
+              
               content: const Text("All fields are required."),
               actions: [
                 TextButton(
@@ -831,68 +832,87 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
   }
 
   void savedDataOnServer(StationData stationData) async {
-    setState(() {
-      _isSubmitting = true;
-      _isLoading = true;
-    });
-    var request;
-    final uri;
-    try {
-      if ((stationData.id).isEmpty) {
-        uri = Uri.parse(
-          "https://fcrupid.fmisc.up.gov.in/api/AppStationAPI/PostFloodData",
-        );
-        request =
-            http.MultipartRequest('POST', uri)
-              ..fields['Gauge'] = stationData.gauge
-              ..fields['Discharge'] = stationData.discharge
-              ..fields['TodayRain'] = stationData.todayRain
-              ..fields['DataDate'] = stationData.dataDate
-              ..fields['DataTime'] = stationData.dataTime
-              ..fields['StationID'] = stationData.stationID;
-      } else {
-        uri = Uri.parse(
-          "https://fcrupid.fmisc.up.gov.in/api/AppStationAPI/UpdateFloodData",
-        );
-        request =
-            http.MultipartRequest('POST', uri)
-              ..fields['ID'] = stationData.id
-              ..fields['Gauge'] = stationData.gauge
-              ..fields['Discharge'] = stationData.discharge
-              ..fields['TodayRain'] = stationData.todayRain
-              ..fields['DataDate'] = stationData.dataDate
-              ..fields['DataTime'] = stationData.dataTime
-              ..fields['StationID'] = stationData.stationID;
-      }
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      print("Status Code UpdateFloodData: ${response.statusCode}");
-      print("Response Body UpdateFloodData: ${response.body}");
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
-        final message = jsonData['message'] ?? "Update successful";
-        clearInputs();
-        fetchData();
-        showDialogMethod(message, true);
-      } else {
-        showDialogMethod("Server error: ${response.statusCode}", false);
-      }
-    } catch (e) {
-      showDialogMethod("Error occurred:", false);
-    } finally {
-      setState(() {
-        _isSubmitting = false;
-        _isLoading = false;
-      });
+  setState(() {
+    _isSubmitting = true;
+    _isLoading = true;
+  });
+  var request;
+  final uri;
+  try {
+    if ((stationData.id).isEmpty) {
+      uri = Uri.parse(
+        "https://fcrupid.fmisc.up.gov.in/api/AppStationAPI/PostFloodData",
+      );
+      request = http.MultipartRequest('POST', uri)
+        ..fields['Gauge'] = stationData.gauge
+        ..fields['Discharge'] = stationData.discharge
+        ..fields['TodayRain'] = stationData.todayRain
+        ..fields['DataDate'] = stationData.dataDate
+        ..fields['DataTime'] = stationData.dataTime
+        ..fields['StationID'] = stationData.stationID;
+    } else {
+      uri = Uri.parse(
+        "https://fcrupid.fmisc.up.gov.in/api/AppStationAPI/UpdateFloodData",
+      );
+      request = http.MultipartRequest('POST', uri)
+        ..fields['ID'] = stationData.id
+        ..fields['Gauge'] = stationData.gauge
+        ..fields['Discharge'] = stationData.discharge
+        ..fields['TodayRain'] = stationData.todayRain
+        ..fields['DataDate'] = stationData.dataDate
+        ..fields['DataTime'] = stationData.dataTime
+        ..fields['StationID'] = stationData.stationID;
     }
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    print("Status Code UpdateFloodData: ${response.statusCode}");
+    print("Response Body UpdateFloodData: ${response.body}");
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      final message = jsonData['message'] ?? "Update successful";
+      clearInputs();
+      fetchData();
+      showDialogMethod(message, true);
+    } else {
+      try {
+        final jsonData = jsonDecode(response.body);
+        String errorMessage = "Failed to update flood data.";
+        if (jsonData['errors'] != null) {
+          // Extract specific validation errors
+          Map<String, dynamic> errors = jsonData['errors'];
+          List<String> errorDetails = [];
+          errors.forEach((key, value) {
+            if (value is List) {
+              errorDetails.addAll(value.cast<String>());
+            } else if (value is String) {
+              errorDetails.add(value);
+            }
+          });
+          errorMessage = errorDetails.join("\n");
+        } else if (jsonData['message'] != null) {
+          errorMessage = jsonData['message'];
+        }
+        showDialogMethod(errorMessage, false);
+      } catch (e) {
+        showDialogMethod("Error parsing response: ${response.statusCode}", false);
+      }
+    }
+  } catch (e) {
+    showDialogMethod("Error occurred: $e", false);
+  } finally {
+    setState(() {
+      _isSubmitting = false;
+      _isLoading = false;
+    });
   }
+}
 
   void showDialogMethod(String message, bool forWhat) {
     showDialog(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: Text(forWhat ? "Success" : "Error"),
+            title: Text(forWhat ? "Success" : "Opps!"),
             content: Text(message),
             actions: [
               TextButton(
