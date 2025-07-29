@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fmiscupapp2/globalclass.dart';
 import 'package:fmiscupapp2/seconddashboardscreen.dart';
@@ -18,60 +19,49 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _otpController =
-      TextEditingController(); // OTP Controller
   final _formKey = GlobalKey<FormState>();
   String _message = '';
   bool _termsAccepted = false;
   bool _isPasswordVisible = false;
-  String _generatedOtp = ''; // This will hold the OTP generated
+  String _generatedOtp = '';
   String? _termsError;
   String? _mobileNo;
   String? _userId;
   bool _isLoading = false;
-  bool _isOtpVerified = false; // Track OTP verification status
-  bool _isOtpInputVisible = false; // Show OTP input only after login
+  bool _isOtpVerified = false;
+  bool _isOtpInputVisible = false;
   List<TextEditingController> _otpControllers = List.generate(
     6,
     (index) => TextEditingController(),
   );
-  bool _showOtpSection = false;
   List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   int _start = 30;
   Timer? _timer;
 
-  // Simulated OTP
-  // Function to simulate OTP sending
-  // Function to simulate OTP sending
   void sendOtp(String mobileNumber) async {
     setState(() {
-      _isOtpInputVisible = true; // Show OTP input field after login
+      _isOtpInputVisible = true;
       _message = 'Sending OTP...';
     });
-    startOtpTimer(); // ⏱️ Start 30-second timer
-    // ✅ Step 1: Generate a 4-digit OTP
+    startOtpTimer();
     final random = Random();
-    final otp = (100000 + random.nextInt(900000)).toString(); // 6-digit OTP
+    final otp = (100000 + random.nextInt(900000)).toString();
     _generatedOtp = otp;
     print('otp1233 : $otp');
     final Uri url = Uri.parse(
-      'https://smsjust.com/sms/user/urlsms.php?'
-      'username=UPFWBI&pass=Amit@123&senderid=UPFWBI&'
-      'message=Your%20security%20code%20is%20$otp.%20UPFWBI&'
-      'dest_mobileno=$mobileNumber&msgtype=TXT&response=Y',
+      "https://www.smsjust.com/sms/user/urlsms.php?apikey=6c0384-dd9494-ff97df-fcefc1-14a497&senderid=UPFWBI&dlttempid=1707173503381660952&message=Your%20One-Time%20Password%20(OTP)%20for%20Login%20is%20$otp%20-%20UPFWBI%20&dest_mobileno=$mobileNumber&&response=Y",
     );
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         print('OTP API Response: ${response.body}');
-        // You can extract and store the OTP internally (for test/verification purpose if needed)
+
         final body = response.body.trim();
         final extractedOtp = body.substring(body.length - 5);
         print("Extracted OTP: $extractedOtp");
         setState(() {
           _message = 'OTP sent to $mobileNumber';
         });
-        // Do NOT auto-fill OTP fields here to allow manual input
       } else {
         setState(() {
           _message = 'Failed to send OTP: ${response.statusCode}';
@@ -86,11 +76,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void startOtpTimer() {
     _start = 30;
-    _timer?.cancel(); // Cancel existing timer if any
+    _timer?.cancel();
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       if (_start == 0) {
         timer.cancel();
-        setState(() {}); // Update UI when timer ends
+        setState(() {});
       } else {
         setState(() {
           _start--;
@@ -99,26 +89,23 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  // Function to verify OTP
   void verifyOtp() {
     String enteredOtp =
         _otpControllers.map((controller) => controller.text).join();
     if (enteredOtp == _generatedOtp || enteredOtp == '202526') {
-      // ✅ Clear OTP fields
       for (final controller in _otpControllers) {
         controller.clear();
       }
       setState(() {
-        _isOtpVerified = true; // Mark OTP as verified
+        _isOtpVerified = true;
         _message = 'OTP Verified ✅';
       });
-      // Navigate to the next screen (e.g., HomeScreen) after OTP verification
+
       Navigator.push<bool>(
         context,
         MaterialPageRoute(builder: (context) => Seconddashboardscreen()),
       ).then((value) {
         if (value == true) {
-          // This will run when user comes back via back button
           setState(() {
             _isOtpInputVisible = false;
             _isOtpVerified = false;
@@ -136,21 +123,11 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Function to check internet connectivity
   Future<bool> _isOnline() async {
     var connectivityResult = await (Connectivity().checkConnectivity());
     return connectivityResult != ConnectivityResult.none;
   }
 
-  // Save data offline (in SharedPreferences)
-  Future<void> _saveOfflineData(String email, String password) async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setString('email', email);
-    prefs.setString('password', password);
-    prefs.setBool('isOffline', true); // Flag to mark that data is offline
-  }
-
-  // Sync data when online
   Future<void> _syncData() async {
     final prefs = await SharedPreferences.getInstance();
     bool isOffline = prefs.getBool('isOffline') ?? false;
@@ -159,13 +136,8 @@ class _LoginScreenState extends State<LoginScreen> {
       String password = prefs.getString('password') ?? '';
 
       if (email.isNotEmpty && password.isNotEmpty) {
-        // Here you would send the data to your API for login
-        // Simulate sending data to the server
-        await Future.delayed(
-          const Duration(seconds: 2),
-        ); // Simulate network delay
+        await Future.delayed(const Duration(seconds: 2));
 
-        // Once the data is posted successfully, remove offline flag
         prefs.remove('isOffline');
         setState(() {
           _message =
@@ -175,125 +147,129 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-Future<void> loginUser() async {
-  final String email = _emailController.text.trim();
-  final String password = _passwordController.text.trim();
-  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-  if (email.isEmpty) {
-    GlobalClass.customToast('Please enter your email');
-    return;
-  } else if (!emailRegex.hasMatch(email)) {
-    GlobalClass.customToast('Enter a valid email address');
-    return;
-  } else if (password.isEmpty) {
-    GlobalClass.customToast('Please Enter Password');
-    return;
-  } else {
-    if (!_formKey.currentState!.validate()) return;
-    if (!_termsAccepted) {
-      setState(() {
-        _termsError = 'You must accept the terms and conditions';
-      });
-      return;
-    }
-    setState(() {
-      _isLoading = true;
-      _message = '';
-    });
-    final prefs = await SharedPreferences.getInstance();
-    String url =
-        'https://fcrupid.fmisc.up.gov.in/api/appuserapi/login?userid=$email&password=$password';
+  Future<bool> checkInternet() async {
     try {
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        // No internet – save login info locally
-        await prefs.setString('offlineEmail', email);
-        await prefs.setString('offlinePassword', password);
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("आप ऑफलाइन हैं"),
-            content: const Text(
-              "डेटा सेव हो गया है। जैसे ही इंटरनेट आएगा, डेटा अपने आप भेज दिया जाएगा।",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("ठीक है"),
-              ),
-            ],
-          ),
-        );
-        setState(() {
-          _message =
-              'Internet नहीं है। डेटा सेव कर लिया गया है, इंटरनेट आने पर भेजा जाएगा।';
-        });
-      } else {
-        final response = await http.get(Uri.parse(url));
-        print('Status Code login: ${response.statusCode}');
-        print('Response Body login: ${response.body}');
-        try {
-          final jsonResponse = json.decode(response.body);
-          if (response.statusCode == 200 && jsonResponse['success'] == true) {
-            _mobileNo = jsonResponse['data']['mobileNo'];
-            _userId = jsonResponse['data']['userID'];
-            String? _stationID = jsonResponse['data']['stationID'];
-            String? stationName = jsonResponse['data']['stationName'];
-            print('User Mobile No: $_mobileNo');
-            print('stationName: $stationName');
-            await prefs.setString('stationID', _stationID ?? "");
-            await prefs.setString('userId', _userId!);
-            await prefs.setString('savedEmail', email);
-            await prefs.setString('stationName', stationName!);
-            await prefs.setString('savedPassword', password);
-            _emailController.clear();
-            _passwordController.clear();
-            setState(() {
-              _isOtpInputVisible = true;
-              _message = 'Login Successful ✅';
-            });
-            sendOtp(_mobileNo!);
-          } else {
-            // Use API message for both 200 and non-200 status codes
-            setState(() {
-              _message = jsonResponse['message'] ?? 'Login failed';
-            });
-          }
-        } catch (e) {
-          // Handle JSON parsing error
-          setState(() {
-            _message = 'Error parsing response: $e';
-          });
-        }
-      }
-    } catch (e) {
-      setState(() {
-        _message = 'Error: $e';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      final socket = await Socket.connect(
+        'google.com',
+        80,
+        timeout: Duration(seconds: 3),
+      );
+      socket.destroy();
+      return true;
+    } catch (_) {
+      return false;
     }
   }
-}
 
-  //
-  // void _login() {
-  //   if (_termsAccepted) {
-  //     loginUser();
-  //   } else {
-  //     setState(() {
-  //       _message = 'Please accept the terms and conditions.';
-  //     });
-  //   }
-  // }
+  Future<void> loginUser() async {
+    final String email = _emailController.text.trim();
+    final String password = _passwordController.text.trim();
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (email.isEmpty) {
+      GlobalClass.customToast('Please enter your email');
+      return;
+    } else if (!emailRegex.hasMatch(email)) {
+      GlobalClass.customToast('Enter a valid email address');
+      return;
+    } else if (password.isEmpty) {
+      GlobalClass.customToast('Please Enter Password');
+      return;
+    } else {
+      if (!_formKey.currentState!.validate()) return;
+      if (!_termsAccepted) {
+        setState(() {
+          _termsError = 'You must accept the terms and conditions';
+        });
+        return;
+      }
+      setState(() {
+        _isLoading = true;
+        _message = '';
+      });
+      final prefs = await SharedPreferences.getInstance();
+      String url =
+          'https://fcrupid.fmisc.up.gov.in/api/appuserapi/login?userid=$email&password=$password';
+      try {
+        // final connectivityResult = await Connectivity().checkConnectivity();
+        if (await checkInternet() == false) {
+          // No internet – save login info locally
+          await prefs.setString('offlineEmail', email);
+          await prefs.setString('offlinePassword', password);
+          showDialog(
+            context: context,
+            builder:
+                (context) => AlertDialog(
+                  title: const Text("आप ऑफलाइन हैं"),
+                  content: const Text(
+                    "डेटा सेव हो गया है। जैसे ही इंटरनेट आएगा, डेटा अपने आप भेज दिया जाएगा।",
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("ठीक है"),
+                    ),
+                  ],
+                ),
+          );
+          setState(() {
+            _message =
+                'Internet नहीं है। डेटा सेव कर लिया गया है, इंटरनेट आने पर भेजा जाएगा।';
+          });
+        } else {
+          final response = await http.get(Uri.parse(url));
+          print('Status Code login: ${response.statusCode}');
+          print('Response Body login: ${response.body}');
+          try {
+            final jsonResponse = json.decode(response.body);
+            if (response.statusCode == 200 && jsonResponse['success'] == true) {
+              _mobileNo = jsonResponse['data']['mobileNo'];
+              _userId = jsonResponse['data']['userID'];
+              String? _stationID = jsonResponse['data']['stationID'];
+              String? stationName = jsonResponse['data']['stationName'];
+              print('User Mobile No: $_mobileNo');
+              print('stationName: $stationName');
+              await prefs.setString('stationID', _stationID ?? "");
+              await prefs.setString('userId', _userId!);
+              await prefs.setString('savedEmail', email);
+              await prefs.setString('stationName', stationName!);
+              await prefs.setString('savedPassword', password);
+              _emailController.clear();
+              _passwordController.clear();
+              setState(() {
+                _isOtpInputVisible = true;
+                _message = 'Login Successful ✅';
+              });
+              sendOtp(_mobileNo!);
+            } else {
+              // Use API message for both 200 and non-200 status codes
+              setState(() {
+                _message = jsonResponse['message'] ?? 'Login failed';
+              });
+            }
+          } catch (e) {
+            // Handle JSON parsing error
+            setState(() {
+              _message = 'Error parsing response: $e';
+            });
+          }
+        }
+      } catch (e) {
+        setState(() {
+          _message = 'Error: $e';
+        });
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _loadSavedCredentials();
-    _syncData(); // Check if any offline data needs to be synced
+    _syncData();
     _isOnline();
   }
 
@@ -310,6 +286,7 @@ Future<void> loginUser() async {
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: const Color(0xFF8DD0F9),
       appBar: PreferredSize(
@@ -363,7 +340,6 @@ Future<void> loginUser() async {
           child: Container(
             width: double.infinity,
             padding: EdgeInsets.all(screenWidth * 0.05),
-            // Add padding based on screen width
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,7 +347,6 @@ Future<void> loginUser() async {
                   SizedBox(height: screenWidth * 0.05),
                   Container(
                     padding: EdgeInsets.all(screenWidth * 0.05),
-                    // Dynamic padding
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       gradient: LinearGradient(
@@ -543,8 +518,7 @@ Future<void> loginUser() async {
                           ],
                         ),
                         SizedBox(height: screenWidth * 0.05),
-                        // OTP Input field (shown after login)
-                        // OTP Input field (shown after login)
+
                         if (_isOtpInputVisible && !_isOtpVerified)
                           Column(
                             children: [
@@ -557,14 +531,21 @@ Future<void> loginUser() async {
                               ),
                               SizedBox(height: 8),
                               GestureDetector(
-                                onTap: _start == 0 ? () => sendOtp(_mobileNo!) : null,
+                                onTap:
+                                    _start == 0
+                                        ? () => sendOtp(_mobileNo!)
+                                        : null,
                                 child: Text(
                                   _start > 0
                                       ? "Resend OTP in $_start sec"
                                       : "Didn't get OTP? Tap to Resend",
                                   style: TextStyle(
-                                    color: _start == 0 ? Colors.blue : Colors.grey,
-                                    fontWeight: _start == 0 ? FontWeight.bold : FontWeight.normal,
+                                    color:
+                                        _start == 0 ? Colors.blue : Colors.grey,
+                                    fontWeight:
+                                        _start == 0
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
                                     fontSize: 15,
                                   ),
                                 ),
@@ -572,7 +553,8 @@ Future<void> loginUser() async {
                               SizedBox(height: screenWidth * 0.02),
                               // OTP Boxes
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: List.generate(6, (index) {
                                   return SizedBox(
                                     width: screenWidth * 0.12,
@@ -592,11 +574,14 @@ Future<void> loginUser() async {
                                         filled: true,
                                         fillColor: Colors.white,
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                       ),
                                       onChanged: (value) {
-                                        if (value.isNotEmpty && index < _focusNodes.length - 1) {
+                                        if (value.isNotEmpty &&
+                                            index < _focusNodes.length - 1) {
                                           _focusNodes[index + 1].requestFocus();
                                         } else if (value.isEmpty && index > 0) {
                                           _focusNodes[index - 1].requestFocus();
@@ -607,7 +592,6 @@ Future<void> loginUser() async {
                                 }),
                               ),
                               SizedBox(height: screenWidth * 0.05),
-                              // Text("$_message", style: TextStyle(fontSize: 12)),
                               ElevatedButton(
                                 onPressed: verifyOtp,
                                 child: const Text(
@@ -628,10 +612,10 @@ Future<void> loginUser() async {
                             onPressed: loginUser,
                             child:
                                 _isLoading
-                                    ? const CircularProgressIndicator(
+                                    ? CircularProgressIndicator(
                                       color: Colors.white,
                                     )
-                                    : const Text(
+                                    : Text(
                                       "Login",
                                       style: TextStyle(color: Colors.white),
                                     ),
@@ -646,7 +630,13 @@ Future<void> loginUser() async {
                         Text(
                           _message,
                           style: TextStyle(
-                            color: _message == _message.contains("Otp sent to $_mobileNo") ? Colors.green : Colors.red,
+                            color:
+                                _message ==
+                                        _message.contains(
+                                          "Otp sent to $_mobileNo",
+                                        )
+                                    ? Colors.green
+                                    : Colors.red,
                           ),
                         ),
                       ],

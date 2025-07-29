@@ -33,50 +33,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // scheduleAllNotifications();
   }
 
-  void scheduleAllNotifications() async {
-    //await flutterLocalNotificationsPlugin.cancelAll();
-    ///scheduleDailyNotification(1, 4, 0, 'Good Morning!', 'It’s 4 AM reminder!');
-    //scheduleDailyNotification(2, 8, 0, 'Start Fresh!', 'It’s 8 AM reminder!');
-    //scheduleDailyNotification(3, 23, 25, 'Midday Alert!', 'It’s 12 PM reminder!');
-    // scheduleDailyNotification(4, 16, 0, 'Afternoon Alert!', 'It’s 4 PM reminder!');
-    // scheduleDailyNotification(5, 20, 0, 'Evening Alert!', 'It’s 8 PM reminder!');
-  }
-
-  /* Future<void> scheduleDailyNotification(int id, int hour, int minute, String title, String body) async {
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      id,
-      title,
-      body,
-      _nextInstanceOfTime(hour, minute),
-      const NotificationDetails(
-        android: AndroidNotificationDetails('daily_channel_id', 'Daily Notifications',
-            channelDescription: 'Channel for scheduled notifications',
-            importance: Importance.max,
-            priority: Priority.high),
-      ),
-      androidAllowWhileIdle: true,
-      uiLocalNotificationDateInterpretation:
-      UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time, // Important for daily schedule
-    );
-  }*/
-
-  tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      hour,
-      minute,
-    );
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(Duration(days: 1));
-    }
-    return scheduledDate;
-  }
-
   void checkDataAvailableInLocal() async {
     List<StationData> listStationData = await DatabaseHelper().getUnsyncedData(
       "false",
@@ -127,36 +83,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (response.statusCode == 200) {
           final jsonData = jsonDecode(response.body);
           final message = jsonData['message'] ?? "Update successful";
-          final id = jsonData['id'] ?? "";
+          // final id = jsonData['id'] ?? "";
           int update = await DatabaseHelper().updateStationSyncStatus();
           if (update > 0) {
-            showDialogMethod(message, true);
+            print("Data updated successfully in local database");
+            print(message);
+            // showDialogMethod(message, true);
           }
         } else {
-          showDialogMethod("Server error: ${response.statusCode}", false);
+          print("Server error: ${response.statusCode}");
+          // showDialogMethod("Server error: ${response.statusCode}", false);
         }
       }
     } catch (e) {
-      showDialogMethod("Error occurred:", false);
+      print("Error occurred: $e");
+      // showDialogMethod("Error occurred:", false);
     }
   }
 
-  void showDialogMethod(String message, bool forWhat) {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(forWhat ? "Success" : "Error"),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text("OK"),
-              ),
-            ],
-          ),
-    );
-  }
+  // void showDialogMethod(String message, bool forWhat) {
+  //   showDialog(
+  //     context: context,
+  //     builder:
+  //         (ctx) => AlertDialog(
+  //           title: Text(forWhat ? "Success " : "Error"),
+  //           content: Text(message),
+  //           actions: [
+  //             TextButton(
+  //               onPressed: () => Navigator.of(ctx).pop(),
+  //               child: const Text("OK"),
+  //             ),
+  //           ],
+  //         ),
+  //   );
+  // }
 
   final ministers = [
     {
@@ -183,8 +143,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xffE6F0FA),
@@ -288,24 +246,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
             // Minister Cards
             Padding(
               padding: const EdgeInsets.all(10),
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: ministers.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: screenWidth < 600 ? 2 : 4,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 4.6 / 4,
-                ),
-                itemBuilder: (context, index) {
-                  final minister = ministers[index];
-                  final isWideImage = minister['name'] == 'Yogi Adityanath';
-                  return MinisterCard(
-                    name: minister['name']!,
-                    position: minister['position']!,
-                    imagePath: minister['imagePath']!,
-                    isWideImage: isWideImage,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  double screenWidth = constraints.maxWidth;
+
+                  // Determine the number of columns and aspect ratio based on screen width
+                  int crossAxisCount;
+                  double aspectRatio;
+
+                  if (screenWidth < 600) {
+                    // Mobile
+                    crossAxisCount = 2;
+                    aspectRatio = 5.6 / 5;
+                  } else if (screenWidth < 900) {
+                    // Small Tablet
+                    crossAxisCount = 3;
+                    aspectRatio = 3.6 / 4.5;
+                  } else {
+                    // Large Tablet / Desktop
+                    crossAxisCount = 4;
+                    aspectRatio = 2.6 / 4;
+                  }
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: ministers.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: aspectRatio,
+                    ),
+                    itemBuilder: (context, index) {
+                      final minister = ministers[index];
+                      final isWideImage = minister['name'] == 'Yogi Adityanath';
+                      return MinisterCard(
+                        name: minister['name']!,
+                        position: minister['position']!,
+                        imagePath: minister['imagePath']!,
+                        isWideImage: isWideImage,
+                      );
+                    },
                   );
                 },
               ),
@@ -369,12 +350,11 @@ class MinisterCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF62c0fe), Colors.white], // Slightly lighter blue
+          colors: [Color(0xFF62c0fe), Colors.white],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
         border: Border.all(color: Color(0xFF0D47A1), width: 1.5),
-        // Deep blue border
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
@@ -392,7 +372,7 @@ class MinisterCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
               child: Image.asset(
                 imagePath,
-                width: isWideImage ? 100 : 70, // Wider for specific ministers
+                width: isWideImage ? 100 : 70,
                 height: isWideImage ? 89 : 70,
                 fit: BoxFit.cover,
               ),

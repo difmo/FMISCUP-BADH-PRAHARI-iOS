@@ -41,7 +41,7 @@ dev_dependencies:
     sdk: flutter
   http: ^0.13.6
   google_fonts: ^4.0.4  # Use the latest version
-  connectivity_plus: ^5.0.2
+  connectivity_plus: ^6.1.4
   hive: ^2.2.3
   html: ^0.15.4 # or latest version
   intl: ^0.18.1

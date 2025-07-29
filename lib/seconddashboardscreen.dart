@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:fmiscupapp2/globalclass.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:html/parser.dart' show parse;
@@ -8,16 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dashboardscreen.dart';
 import 'data_base/data_helper.dart';
 import 'entity/station_data.dart';
-import 'loginscreen.dart';
-
-void main() {
-  runApp(
-    const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Seconddashboardscreen(),
-    ),
-  );
-}
 
 class Seconddashboardscreen extends StatefulWidget {
   const Seconddashboardscreen({super.key});
@@ -30,9 +19,8 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
   List<dynamic> _dataList = [];
   bool _isLoading = true;
   List<String> _timeSlots = [];
-  List<int> _idList = []; // To hold the list of IDs
-  String? _selectedTime; // already a string
-  DateTime? _selectedDate;
+  List<int> _idList = [];
+  String? _selectedTime;
   DateTime? _selectedDatedropdown;
   int? selectedId;
   final TextEditingController gaugeController = TextEditingController();
@@ -46,28 +34,38 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
   @override
   void initState() {
     super.initState();
-    fetchData();
-    fetchTimeSlots();
-    loadSavedValues();
-    loadStationName();
-    fetchValidationData();
+    // Initialize data fetching and loading
+    _initializeData();
   }
 
+  // Centralized initialization method to handle all async operations
+  Future<void> _initializeData() async {
+    await Future.wait([
+      loadStationName(),
+      fetchTimeSlots(),
+      loadSavedValues(),
+      fetchValidationData(),
+      fetchData(),
+    ]);
+  }
 
+  // Load station name from SharedPreferences
   Future<void> loadStationName() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _stationName = prefs.getString('stationName') ?? 'Unknown Station';
     });
-    print('_stationName : $_stationName');
+    debugPrint('_stationName: $_stationName');
   }
+
+  // Fetch available time slots from API
   Future<void> fetchTimeSlots() async {
     final url = Uri.parse(
       "https://fcrupid.fmisc.up.gov.in/api/appstationapi/TimeSlot",
     );
     try {
       final response = await http.get(url);
-      print("TimeSlot response: ${response.body}");
+      debugPrint("TimeSlot response: ${response.body}");
       if (response.statusCode == 200) {
         final jsonBody = json.decode(response.body);
         if (jsonBody['success'] == true && jsonBody['data'] is List) {
@@ -78,178 +76,120 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
         }
       }
     } catch (e) {
-      print("TimeSlot fetch error: $e");
+      debugPrint("TimeSlot fetch error: $e");
     }
   }
 
+  // Fetch unapproved data for the station
   Future<void> fetchData() async {
     final prefs = await SharedPreferences.getInstance();
-    String _stationID = await prefs.getString('stationID') ?? "1";
+    String stationID = prefs.getString('stationID') ?? "1";
     final url = Uri.parse(
-      "https://fcrupid.fmisc.up.gov.in/api/appstationapi/getunapproveddata?stationid=$_stationID",
+      "https://fcrupid.fmisc.up.gov.in/api/appstationapi/getunapproveddata?stationid=$stationID",
     );
     try {
       final response = await http.get(url);
-      print("Status Code getunapproveddata: ${response.statusCode}");
+      debugPrint("Status Code getunapproveddata: ${response.statusCode}");
       if (response.statusCode == 200) {
         final jsonBody = json.decode(response.body);
         final data = jsonBody['data'];
         setState(() {
-          _dataList.clear();
-          _dataList = data;
-          _idList =
-              data
-                  .map<int>((item) => item['id'] as int)
-                  .toList(); // extract IDs
+          _dataList = data ?? [];
+          _idList = data?.map<int>((item) => item['id'] as int).toList() ?? [];
           _isLoading = false;
         });
-
-        print("Extracted IDs: $_idList"); // optional debug print
+        debugPrint("Extracted IDs: $_idList");
       } else {
         setState(() => _isLoading = false);
       }
     } catch (e) {
-      print("Error: $e");
+      debugPrint("Fetch data error: $e");
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> updateFloodDataupdateOld(BuildContext context) async {
+  Future<void> loadSavedValues() async {
+    final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _isSubmitting = true;
-      _isLoading = true; // Show CircularProgressIndicator
+      gaugeController.text = prefs.getString('gauge') ?? '';
+      dischargeController.text = prefs.getString('discharge') ?? '';
+      rainController.text = prefs.getString('rain') ?? '';
+      _selectedTime = prefs.getString('selectedTime');
     });
-    final uri = Uri.parse(
-      'https://fcrupid.fmisc.up.gov.in/api/AppStationAPI/UpdateFloodData',
+  }
+
+  Future<void> fetchValidationData() async {
+    final prefs = await SharedPreferences.getInstance();
+    String stationID = prefs.getString('stationID') ?? "1";
+    final url = Uri.parse(
+      "https://fcrupid.fmisc.up.gov.in/api/appstationapi/ValidateFData?stationid=$stationID",
     );
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('gauge', gaugeController.text);
-    prefs.setString('discharge', dischargeController.text);
-    prefs.setString('rain', rainController.text);
-    prefs.setString('selectedTime', _selectedTime!);
-    String? _stationID = prefs.getString('stationID') ?? "";
-    final formattedDateForRequest = _selectedDate != null
-            ? DateFormat('yyyy-MM-dd').format(_selectedDate!)
-            : '';
-    var request = http.MultipartRequest('POST', uri)
-          ..fields['ID'] = selectedId.toString() // Convert int to String
-          ..fields['Gauge'] = gaugeController.text
-          ..fields['Discharge'] = dischargeController.text
-          ..fields['TodayRain'] = rainController.text
-          ..fields['DataDate'] = formattedDateForRequest
-          ..fields['DataTime'] = _selectedTime!
-          ..fields['StationID'] = _stationID; // StationID is already a string
-    print('objectid : $selectedId');
-    print('DataDate : $formattedDateForRequest');
     try {
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      print("Status Code UpdateFloodData: ${response.statusCode}");
-      print("Response Body UpdateFloodData: ${response.body}");
+      final response = await http.get(url);
+      debugPrint("ValidateFData response: ${response.body}");
       if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
-        final message = jsonData['message'] ?? 'No message';
-        // Clear saved values in SharedPreferences if the response is successful
-        prefs.remove('gauge');
-        prefs.remove('discharge');
-        prefs.remove('rain');
-        prefs.remove('selectedTime');
-        // ✅ Clear text fields and time after successful update
-        gaugeController.clear();
-        dischargeController.clear();
-        rainController.clear();
-        _selectedTime = null;
-        await fetchData();
-        // Show dialog with response message
-        showDialog(
-          context: context,
-          builder:
-              (ctx) => AlertDialog(
-                title: const Text("Response"),
-                content: Text(message),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text("OK"),
-                  ),
-                ],
-              ),
-        );
-      } else {
-        showDialog(
-          context: context,
-          builder:
-              (ctx) => AlertDialog(
-                title: const Text("Error"),
-                content: Text(
-                  "Failed to update flood data. Status code: ${response.statusCode}",
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text("OK"),
-                  ),
-                ],
-              ),
+        final body = json.decode(response.body);
+        print("Validation Data: $body");
+        final String dataString = body['data'] ?? '';
+        final cleanedString = dataString.replaceAll(RegExp(r'[{} ]'), '');
+        final parts = cleanedString.split(',');
+        for (var part in parts) {
+          final keyValue = part.split(':');
+          if (keyValue.length == 2) {
+            if (keyValue[0] == 'maxFloodLevel') {
+              print("Max Flood Level: ${keyValue[1]}");
+              maxFloodLevel = double.tryParse(keyValue[1]);
+            } else if (keyValue[0] == 'maxDischarge') {
+              maxDischarge = double.tryParse(keyValue[1]);
+            }
+          }
+        }
+        debugPrint(
+          "Parsed maxFloodLevel: $maxFloodLevel, maxDischarge: $maxDischarge",
         );
       }
     } catch (e) {
-      showDialog(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: const Text("Exception"),
-              content: Text("Error occurred: $e"),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text("OK"),
-                ),
-              ],
-            ),
-      );
-    } finally {
-      setState(() {
-        _isSubmitting = false;
-        _isLoading = false; // Done loading
-      });
+      debugPrint("Validation fetch error: $e");
     }
   }
 
-  Future<void> updateFloodDataupdate(BuildContext context, bool forWhat) async {
+  // Validate and submit flood data
+  Future<void> validateAndSubmit(BuildContext context) async {
+    final double? gauge = double.tryParse(gaugeController.text);
+    final double? discharge = double.tryParse(dischargeController.text);
+    if (gauge == null || discharge == null) {
+      _showMessage(context, "Please enter valid Gauge and Discharge values.");
+      return;
+    }
+    if (maxFloodLevel != null && gauge > maxFloodLevel!) {
+      _showMessage(context, "Gauge exceeds maxFloodLevel ($maxFloodLevel)");
+      return;
+    }
+    if (maxDischarge != null && discharge > maxDischarge!) {
+      _showMessage(context, "Discharge exceeds maxDischarge ($maxDischarge)");
+      return;
+    }
+    await updateFloodData(context, selectedId == null);
+  }
+
+  // Update or insert flood data
+  Future<void> updateFloodData(BuildContext context, bool isInsert) async {
     if (gaugeController.text.isEmpty ||
         dischargeController.text.isEmpty ||
         rainController.text.isEmpty ||
         _selectedTime == null ||
         _selectedDatedropdown == null) {
-      showDialog(
-        context: context,
-      
-        builder:
-            (ctx) => AlertDialog(
-              
-              content: const Text("All fields are required."),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text("OK"),
-                ),
-              ],
-            ),
-      );
+      _showDialog(context, "Error", "All fields are required.", false);
       return;
     }
+
     final formattedDate = DateFormat(
       'yyyy-MM-dd',
     ).format(_selectedDatedropdown!);
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? stationId = prefs.getString('stationID') ?? "";
-    String ID = "";
-    if (selectedId != null) {
-      ID = selectedId.toString();
-    }
+    final prefs = await SharedPreferences.getInstance();
+    final stationId = prefs.getString('stationID') ?? "";
     final floodData = StationData(
-      id: ID,
+      id: selectedId?.toString() ?? "",
       gauge: gaugeController.text,
       discharge: dischargeController.text,
       todayRain: rainController.text,
@@ -258,108 +198,163 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
       stationID: stationId,
       isSync: "false",
     );
-    if (await GlobalClass.checkInternet()) {
-      savedDataOnServer(floodData);
-    } else {
-      int insertData = -1;
-      int updateData = -1;
-      if (forWhat) {
-        insertData = await DatabaseHelper().insertStationData(floodData);
+
+    await savedDataOnServer(context, floodData);
+    if (context.mounted) {
+      if (isInsert) {
+        await DatabaseHelper().insertStationData(floodData);
       } else {
-        updateData = await DatabaseHelper().updateStationData(floodData);
-      }
-      if (insertData > 0) {
-        showDialogMethod("Data Saved Successfully", true);
-      }
-      if (updateData > 0) {
-        showDialogMethod("Data Update Successfully", true);
+        await DatabaseHelper().updateStationData(floodData);
       }
     }
   }
 
-  // Auto-fill text fields with saved values
-  Future<void> loadSavedValues() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? savedGauge = prefs.getString('gauge');
-    String? savedDischarge = prefs.getString('discharge');
-    String? savedRain = prefs.getString('rain');
-    String? savedTime = prefs.getString('selectedTime');
-    // Auto-fill text fields if values are available
-    if (savedGauge != null) {
-      gaugeController.text = savedGauge;
-    }
-    if (savedDischarge != null) {
-      dischargeController.text = savedDischarge;
-    }
-    if (savedRain != null) {
-      rainController.text = savedRain;
-    }
-    if (savedTime != null) {
-      _selectedTime = savedTime;
-    }
-  }
+  // Save data to server
+  Future<void> savedDataOnServer(
+    BuildContext context,
+    StationData stationData,
+  ) async {
+    setState(() {
+      _isSubmitting = true;
+      _isLoading = true;
+    });
 
-  Future<void> fetchValidationData() async {
-    final prefs = await SharedPreferences.getInstance();
-    String _stationID = await prefs.getString('stationID') ?? "1";
-    final url = Uri.parse(
-      "https://fcrupid.fmisc.up.gov.in/api/appstationapi/ValidateFData?stationid=$_stationID",
-    );
+    final uri =
+        stationData.id.isEmpty
+            ? Uri.parse(
+              "https://fcrupid.fmisc.up.gov.in/api/AppStationAPI/PostFloodData",
+            )
+            : Uri.parse(
+              "https://fcrupid.fmisc.up.gov.in/api/AppStationAPI/UpdateFloodData",
+            );
+
     try {
-      final response = await http.get(url);
-      print("ValidateFData response: ${response.body}");
+      final request =
+          http.MultipartRequest('POST', uri)
+            ..fields['Gauge'] = stationData.gauge
+            ..fields['Discharge'] = stationData.discharge
+            ..fields['TodayRain'] = stationData.todayRain
+            ..fields['DataDate'] = stationData.dataDate
+            ..fields['DataTime'] = stationData.dataTime
+            ..fields['StationID'] = stationData.stationID;
+      if (stationData.id.isNotEmpty) {
+        request.fields['ID'] = stationData.id;
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      debugPrint("Status Code UpdateFloodData: ${response.statusCode}");
+      debugPrint("Response Body UpdateFloodData: ${response.body}");
+
       if (response.statusCode == 200) {
-        final body = json.decode(response.body);
-        final String dataString = body['data'];
-        final cleanedString = dataString
-            .replaceAll('{', ' ')
-            .replaceAll('}', '')
-            .replaceAll(' ', '');
-        final parts = cleanedString.split(',');
-        for (var part in parts) {
-          final keyValue = part.split(':');
-          if (keyValue.length == 2) {
-            if (keyValue[0] == 'maxFloodLevel') {
-              maxFloodLevel = double.tryParse(keyValue[1]);
-            } else if (keyValue[0] == 'maxDischarge') {
-              maxDischarge = double.tryParse(keyValue[1]);
-            }
+        final jsonData = jsonDecode(response.body);
+        final message = jsonData['message'] ?? "Update successful";
+        clearInputs();
+        await fetchData();
+        // if (context.mounted) {
+        //   _showDialog(context, "Success", message, true);
+        // }
+        _showDialog(context, "Success", message, true);
+      } else {
+        String errorMessage = "Failed to update flood data.";
+        try {
+          final jsonData = jsonDecode(response.body);
+          if (jsonData['errors'] != null) {
+            Map<String, dynamic> errors = jsonData['errors'];
+            List<String> errorDetails = [];
+            errors.forEach((key, value) {
+              if (value is List) {
+                errorDetails.addAll(value.cast<String>());
+              } else if (value is String) {
+                errorDetails.add(value);
+              }
+            });
+            errorMessage = errorDetails.join("\n");
+          } else if (jsonData['message'] != null) {
+            errorMessage = jsonData['message'];
           }
+        } catch (e) {
+          errorMessage = "Error parsing response: ${response.statusCode}";
         }
-        print(
-          "Parsed maxFloodLevel: $maxFloodLevel, maxDischarge: $maxDischarge",
-        );
+        if (context.mounted) {
+          _showDialog(context, "Error", errorMessage, false);
+        }
       }
     } catch (e) {
-      print("Validation fetch error: $e");
+      if (context.mounted) {
+        _showDialog(context, "Error", "Error occurred: $e", false);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  void validateAndSubmit() {
-    final double? gauge = double.tryParse(gaugeController.text);
-    final double? discharge = double.tryParse(dischargeController.text);
-    if (gauge == null || discharge == null) {
-      showMessage("Please enter valid Gauge and Discharge values.");
-      return;
-    }
-    if (maxFloodLevel != null && gauge > maxFloodLevel!) {
-      showMessage("Gauge exceeds maxFloodLevel ($maxFloodLevel)");
-      return;
-    }
-    if (maxDischarge != null && discharge > maxDischarge!) {
-      showMessage("Discharge exceeds maxDischarge ($maxDischarge)");
-      return;
-    }
-    showMessage("Flood data is valid. Proceed to submit.");
-    // TODO: Add API submission logic here.
-  }
-  void showMessage(String msg) {
+  void _showMessage(BuildContext context, String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  void _showDialog(
+    BuildContext context,
+    String title,
+    String message,
+    bool isSuccess,
+  ) {
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: Color(0xff1A237E),
+            title: Text(title, style: TextStyle(color: Colors.white)),
+            content: Text(message, style: TextStyle(color: Colors.white)),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  if (isSuccess) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DashboardScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                },
+                child: const Text("OK", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+    );
   }
 
   String parseHtmlString(String htmlString) {
     final document = parse(htmlString);
     return document.body?.text ?? '';
+  }
+
+  void clearInputs() {
+    gaugeController.clear();
+    dischargeController.clear();
+    rainController.clear();
+    setState(() {
+      _selectedTime = null;
+      _selectedDatedropdown = null;
+      selectedId = null;
+    });
+  }
+
+  @override
+  void dispose() {
+    gaugeController.dispose();
+    dischargeController.dispose();
+    rainController.dispose();
+    super.dispose();
   }
 
   @override
@@ -372,8 +367,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            // Use Navigator.pop with a result flag to indicate back action
-            Navigator.pop(context, true); // You can pass true or any flag
+            Navigator.pop(context, true);
           },
         ),
         title: Row(
@@ -389,8 +383,8 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                       "Station: $_stationName",
-                  style: TextStyle(
+                  "Station: $_stationName",
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                     fontSize: 20,
@@ -415,64 +409,6 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
       ),
       body: Column(
         children: [
-          // PreferredSize(
-          //   preferredSize: const Size.fromHeight(60),
-          //   child: AppBar(
-          //     backgroundColor: Color(0xff1A237E),
-          //     automaticallyImplyLeading: false, // We'll manually add the back icon
-          //     leading: IconButton(
-          //       icon: const Icon(Icons.arrow_back, color: Colors.white),
-          //       onPressed: () {
-          //         Navigator.pop(context); // Navigate back
-          //       },
-          //     ),
-          //     flexibleSpace: Padding(
-          //       padding: const EdgeInsets.only(
-          //         top: 50,
-          //         left: 16,
-          //         right: 16,
-          //       ),
-          //       child: Row(
-          //         children: [
-          //           const SizedBox(width: 48), // To offset the CircleAvatar after leading icon
-          //           const CircleAvatar(
-          //             radius: 20,
-          //             backgroundImage: AssetImage('assets/image/logo.png'),
-          //             backgroundColor: Colors.white,
-          //           ),
-          //           const SizedBox(width: 40),
-          //           const Text(
-          //             'Station',
-          //             style: TextStyle(
-          //               color: Colors.white,
-          //               fontSize: 20,
-          //               fontWeight: FontWeight.bold,
-          //             ),
-          //           ),
-          //           const SizedBox(width: 6),
-          //           const Text(
-          //             'भीमगौड़ा',
-          //             style: TextStyle(
-          //               color: Colors.white,
-          //               fontSize: 20,
-          //               fontWeight: FontWeight.bold,
-          //             ),
-          //           ),
-          //           const Spacer(),
-          //           IconButton(
-          //             icon: const Icon(Icons.login, color: Colors.white),
-          //             onPressed: () {
-          //               Navigator.push(
-          //                 context,
-          //                 MaterialPageRoute(builder: (context) => const DashboardScreen()),
-          //               );
-          //             },
-          //           ),
-          //         ],
-          //       ),
-          //     ),
-          //   ),
-          // ),
           const SizedBox(height: 15),
           const Center(
             child: Text(
@@ -487,13 +423,13 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
               controller: gaugeController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                hintText: 'Gauge(Downstream)',
+                hintText: 'Gauge (Downstream)',
                 border: OutlineInputBorder(),
-                isDense: true, // Reduces vertical height
+                isDense: true,
                 contentPadding: EdgeInsets.symmetric(
                   vertical: 10,
                   horizontal: 10,
-                ), // Adjust as needed
+                ),
               ),
             ),
           ),
@@ -506,11 +442,11 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
               decoration: const InputDecoration(
                 hintText: 'Discharge',
                 border: OutlineInputBorder(),
-                isDense: true, // Reduces vertical height
+                isDense: true,
                 contentPadding: EdgeInsets.symmetric(
                   vertical: 10,
                   horizontal: 10,
-                ), // Adjust as needed
+                ),
               ),
             ),
           ),
@@ -523,11 +459,11 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
               decoration: const InputDecoration(
                 hintText: 'Rain',
                 border: OutlineInputBorder(),
-                isDense: true, // Reduces vertical height
+                isDense: true,
                 contentPadding: EdgeInsets.symmetric(
                   vertical: 10,
                   horizontal: 10,
-                ), // Adjust as needed
+                ),
               ),
             ),
           ),
@@ -536,31 +472,28 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
               children: [
-                // Date Field
                 Expanded(
                   child: GestureDetector(
                     onTap: () async {
-                      // Show a simple bottom sheet or dialog to select Today or Yesterday
                       final selected = await showModalBottomSheet<String>(
                         context: context,
-                        builder: (context) {
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ListTile(
-                                title: const Text('Today'),
-                                onTap: () => Navigator.pop(context, 'today'),
-                              ),
-                              ListTile(
-                                title: const Text('Yesterday'),
-                                onTap:
-                                    () => Navigator.pop(context, 'yesterday'),
-                              ),
-                            ],
-                          );
-                        },
+                        builder:
+                            (context) => Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ListTile(
+                                  title: const Text('Today'),
+                                  onTap: () => Navigator.pop(context, 'today'),
+                                ),
+                                ListTile(
+                                  title: const Text('Yesterday'),
+                                  onTap:
+                                      () => Navigator.pop(context, 'yesterday'),
+                                ),
+                              ],
+                            ),
                       );
-                      if (selected != null) {
+                      if (selected != null && context.mounted) {
                         setState(() {
                           _selectedDatedropdown =
                               selected == 'today'
@@ -569,7 +502,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                                     const Duration(days: 1),
                                   );
                         });
-                        await fetchTimeSlots(); // Call API after selection
+                        await fetchTimeSlots();
                       }
                     },
                     child: Container(
@@ -586,7 +519,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                             _selectedDatedropdown == null
                                 ? 'Date'
                                 : '${_selectedDatedropdown!.day}/${_selectedDatedropdown!.month}/${_selectedDatedropdown!.year}',
-                            style: TextStyle(fontSize: 15),
+                            style: const TextStyle(fontSize: 15),
                           ),
                           const Icon(Icons.arrow_drop_down),
                         ],
@@ -594,7 +527,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12), // Time Field with border
+                const SizedBox(width: 12),
                 Expanded(
                   child: Container(
                     height: 45,
@@ -621,7 +554,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                                     value: time,
                                     child: Text(
                                       time,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontWeight: FontWeight.normal,
                                         fontSize: 14,
                                         color: Colors.black,
@@ -631,9 +564,11 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                                 )
                                 .toList(),
                         onChanged: (value) {
-                          setState(() {
-                            _selectedTime = value;
-                          });
+                          if (value != null) {
+                            setState(() {
+                              _selectedTime = value;
+                            });
+                          }
                         },
                         icon: const Icon(Icons.arrow_drop_down),
                       ),
@@ -653,12 +588,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                     _isSubmitting
                         ? null
                         : () {
-                          if (selectedId != null) {
-                            print('selectedId : $selectedId');
-                            updateFloodDataupdate(context, false);
-                          } else {
-                            updateFloodDataupdate(context, true);
-                          }
+                          validateAndSubmit(context);
                         },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff1A237E),
@@ -686,11 +616,12 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
               ),
             ),
           ),
-          //   const SizedBox(height: 10),
           Expanded(
             child:
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
+                    : _dataList.isEmpty
+                    ? const Center(child: Text("No data available"))
                     : ListView.builder(
                       itemCount: _dataList.length,
                       itemBuilder: (context, index) {
@@ -711,7 +642,6 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Top blue header with station name and edit icon inside
                               Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.symmetric(
@@ -730,7 +660,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        "Station: ${parseHtmlString(item['stationName'])}",
+                                        "Station: ${parseHtmlString(item['stationName'] ?? '')}",
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600,
@@ -744,40 +674,42 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                                         setState(() {
                                           selectedId = item['id'];
                                           gaugeController.text =
-                                              item['gauge'].toString();
+                                              item['gauge']?.toString() ?? '';
                                           dischargeController.text =
-                                              item['discharge'].toString();
+                                              item['discharge']?.toString() ??
+                                              '';
                                           rainController.text =
-                                              item['todayRain'].toString();
+                                              item['todayRain']?.toString() ??
+                                              '';
+
                                           String? fullDateTime =
                                               item['dataTime'];
-                                          String? extractedTime;
-                                          if (fullDateTime != null &&
-                                              fullDateTime.contains(' ')) {
-                                            List<String> parts = fullDateTime
-                                                .split(' ');
-                                            if (parts.length >= 3) {
-                                              extractedTime =
-                                                  '${parts[1]} ${parts[2]}';
+                                          if (fullDateTime != null) {
+                                            try {
+                                              DateTime parsedDate = DateFormat(
+                                                'dd-MMM-yyyy hh:mm a',
+                                              ).parse(fullDateTime);
+                                              _selectedDatedropdown =
+                                                  parsedDate;
+
+                                              final extractedTime = DateFormat(
+                                                'hh:mm a',
+                                              ).format(parsedDate);
                                               _selectedTime =
                                                   _timeSlots.contains(
                                                         extractedTime,
                                                       )
                                                       ? extractedTime
                                                       : null;
-                                            }
-                                            try {
-                                              final datePart = parts[0];
-                                              final date = DateFormat(
-                                                "dd-MMM-yyyy",
-                                              ).parse(datePart);
-                                              _selectedDate = date;
                                             } catch (e) {
-                                              print("Date parsing error: $e");
+                                              debugPrint(
+                                                "Date parse error: $e",
+                                              );
                                             }
                                           }
                                         });
                                       },
+
                                       child: const Icon(
                                         Icons.edit,
                                         color: Colors.white,
@@ -796,22 +728,22 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      "Gauge: ${item['gauge']}",
+                                      "Gauge: ${item['gauge'] ?? 'N/A'}",
                                       style: const TextStyle(height: 1.2),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      "Discharge: ${item['discharge']}",
+                                      "Discharge: ${item['discharge'] ?? 'N/A'}",
                                       style: const TextStyle(height: 1.2),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      "Rain: ${item['todayRain']}",
+                                      "Rain: ${item['todayRain'] ?? 'N/A'}",
                                       style: const TextStyle(height: 1.2),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      "Date & Time: ${item['dataTime']}",
+                                      "Date & Time: ${item['dataTime'] ?? 'N/A'}",
                                       style: const TextStyle(
                                         fontSize: 12,
                                         height: 1.2,
@@ -829,109 +761,5 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
         ],
       ),
     );
-  }
-
-  void savedDataOnServer(StationData stationData) async {
-  setState(() {
-    _isSubmitting = true;
-    _isLoading = true;
-  });
-  var request;
-  final uri;
-  try {
-    if ((stationData.id).isEmpty) {
-      uri = Uri.parse(
-        "https://fcrupid.fmisc.up.gov.in/api/AppStationAPI/PostFloodData",
-      );
-      request = http.MultipartRequest('POST', uri)
-        ..fields['Gauge'] = stationData.gauge
-        ..fields['Discharge'] = stationData.discharge
-        ..fields['TodayRain'] = stationData.todayRain
-        ..fields['DataDate'] = stationData.dataDate
-        ..fields['DataTime'] = stationData.dataTime
-        ..fields['StationID'] = stationData.stationID;
-    } else {
-      uri = Uri.parse(
-        "https://fcrupid.fmisc.up.gov.in/api/AppStationAPI/UpdateFloodData",
-      );
-      request = http.MultipartRequest('POST', uri)
-        ..fields['ID'] = stationData.id
-        ..fields['Gauge'] = stationData.gauge
-        ..fields['Discharge'] = stationData.discharge
-        ..fields['TodayRain'] = stationData.todayRain
-        ..fields['DataDate'] = stationData.dataDate
-        ..fields['DataTime'] = stationData.dataTime
-        ..fields['StationID'] = stationData.stationID;
-    }
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-    print("Status Code UpdateFloodData: ${response.statusCode}");
-    print("Response Body UpdateFloodData: ${response.body}");
-    if (response.statusCode == 200) {
-      final jsonData = jsonDecode(response.body);
-      final message = jsonData['message'] ?? "Update successful";
-      clearInputs();
-      fetchData();
-      showDialogMethod(message, true);
-    } else {
-      try {
-        final jsonData = jsonDecode(response.body);
-        String errorMessage = "Failed to update flood data.";
-        if (jsonData['errors'] != null) {
-          // Extract specific validation errors
-          Map<String, dynamic> errors = jsonData['errors'];
-          List<String> errorDetails = [];
-          errors.forEach((key, value) {
-            if (value is List) {
-              errorDetails.addAll(value.cast<String>());
-            } else if (value is String) {
-              errorDetails.add(value);
-            }
-          });
-          errorMessage = errorDetails.join("\n");
-        } else if (jsonData['message'] != null) {
-          errorMessage = jsonData['message'];
-        }
-        showDialogMethod(errorMessage, false);
-      } catch (e) {
-        showDialogMethod("Error parsing response: ${response.statusCode}", false);
-      }
-    }
-  } catch (e) {
-    showDialogMethod("Error occurred: $e", false);
-  } finally {
-    setState(() {
-      _isSubmitting = false;
-      _isLoading = false;
-    });
-  }
-}
-
-  void showDialogMethod(String message, bool forWhat) {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(forWhat ? "Success" : "Opps!"),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text("OK"),
-              ),
-            ],
-          ),
-    );
-  }
-
-  void clearInputs() {
-    gaugeController.clear();
-    dischargeController.clear();
-    rainController.clear();
-
-    setState(() {
-      _selectedTime = null;
-      _selectedDatedropdown = null;
-    });
   }
 }

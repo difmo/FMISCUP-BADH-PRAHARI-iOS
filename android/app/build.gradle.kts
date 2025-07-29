@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.techwings.fmiscupapp2"
-    compileSdk = 34
+    compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -35,8 +35,8 @@ android {
         applicationId = "com.techwings.fmiscupapp2"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.4"
+        versionCode = 8
+        versionName = "1.0.8"
     }
 
     signingConfigs {
