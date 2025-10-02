@@ -34,11 +34,9 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize data fetching and loading
     _initializeData();
   }
 
-  // Centralized initialization method to handle all async operations
   Future<void> _initializeData() async {
     await Future.wait([
       loadStationName(),
@@ -49,7 +47,6 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
     ]);
   }
 
-  // Load station name from SharedPreferences
   Future<void> loadStationName() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -58,7 +55,6 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
     debugPrint('_stationName: $_stationName');
   }
 
-  // Fetch available time slots from API
   Future<void> fetchTimeSlots() async {
     final url = Uri.parse(
       "https://fcrupid.fmisc.up.gov.in/api/appstationapi/TimeSlot",
@@ -71,7 +67,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
         if (jsonBody['success'] == true && jsonBody['data'] is List) {
           setState(() {
             _timeSlots = List<String>.from(jsonBody['data']);
-            _selectedTime = null; // Reset on new fetch
+            _selectedTime = null;
           });
         }
       }
@@ -80,7 +76,6 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
     }
   }
 
-  // Fetch unapproved data for the station
   Future<void> fetchData() async {
     final prefs = await SharedPreferences.getInstance();
     String stationID = prefs.getString('stationID') ?? "1";
@@ -153,7 +148,6 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
     }
   }
 
-  // Validate and submit flood data
   Future<void> validateAndSubmit(BuildContext context) async {
     final double? gauge = double.tryParse(gaugeController.text);
     final double? discharge = double.tryParse(dischargeController.text);
@@ -172,7 +166,37 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
     await updateFloodData(context, selectedId == null);
   }
 
-  // Update or insert flood data
+  void _showConfirmDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: Colors.white,
+            title: const Text(
+              "अत्यंत महत्वपूर्ण सूचना",
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+            content: const Text(
+              "कृपया Submit करने से पहले सुनिश्चित कर लें।",
+              style: TextStyle(color: Colors.black),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  validateAndSubmit(context); // call your existing submit
+                },
+                child: const Text("Submit"),
+              ),
+            ],
+          ),
+    );
+  }
+
   Future<void> updateFloodData(BuildContext context, bool isInsert) async {
     if (gaugeController.text.isEmpty ||
         dischargeController.text.isEmpty ||
@@ -251,9 +275,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
         final message = jsonData['message'] ?? "Update successful";
         clearInputs();
         await fetchData();
-        // if (context.mounted) {
-        //   _showDialog(context, "Success", message, true);
-        // }
+
         _showDialog(context, "Success", message, true);
       } else {
         String errorMessage = "Failed to update flood data.";
@@ -476,23 +498,33 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                   child: GestureDetector(
                     onTap: () async {
                       final selected = await showModalBottomSheet<String>(
+                        backgroundColor: Colors.white,
+                        showDragHandle: true,
                         context: context,
+                        isScrollControlled: true, // allows custom height
                         builder:
-                            (context) => Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ListTile(
-                                  title: const Text('Today'),
-                                  onTap: () => Navigator.pop(context, 'today'),
-                                ),
-                                ListTile(
-                                  title: const Text('Yesterday'),
-                                  onTap:
-                                      () => Navigator.pop(context, 'yesterday'),
-                                ),
-                              ],
+                            (context) => SizedBox(
+                              height:
+                                  MediaQuery.of(context).size.height *
+                                  0.4, // 40% of screen
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ListTile(
+                                    title: const Text('Today'),
+                                    onTap:
+                                        () => Navigator.pop(context, 'today'),
+                                  ),
+                                  // ListTile(
+                                  //   title: const Text('Yesterday'),
+                                  //   onTap:
+                                  //       () => Navigator.pop(context, 'yesterday'),
+                                  // ),
+                                ],
+                              ),
                             ),
                       );
+
                       if (selected != null && context.mounted) {
                         setState(() {
                           _selectedDatedropdown =
@@ -588,7 +620,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                     _isSubmitting
                         ? null
                         : () {
-                          validateAndSubmit(context);
+                          _showConfirmDialog(context);
                         },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff1A237E),
