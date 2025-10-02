@@ -6,8 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'entity/station_data.dart';
 import 'loginscreen.dart';
 import 'package:http/http.dart' as http;
-import 'package:timezone/timezone.dart' as tz;
-import 'main.dart';
 
 void main() {
   runApp(
@@ -195,133 +193,136 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Blue Box with Hindi text
-            Container(
-              margin: const EdgeInsets.all(12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF62c0fe), Colors.white],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                border: Border.all(color: const Color(0xff1A237E), width: 3),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                'FMISC फ्लड मोबाइल ऐप बाढ़ से संबंधित रियल-टाइम जानकारी, चेतावनियाँ और सुरक्षा युक्तियाँ प्रदान करता है। यह उपयोगकर्ताओं को बाढ़ प्रभावित क्षेत्रों के इंटरैक्टिव मानचित्र, आपातकालीन संपर्क विवरण और स्थानीय अधिकारियों को स्थिति रिपोर्ट करने की सुविधा प्रदान करता है। ',
-                // यह ऐप नागरिकों, प्रशासन और राहतकर्मियों के लिए उपयोगी है',
-                style: TextStyle(fontSize: 16, color: Colors.black),
-                textAlign:
-                    TextAlign
-                        .justify, // Ensures the text stretches across the container
-                //   textDirection: TextDirection.rtl, // Ensures Hindi text aligns properly
-              ),
-            ),
-            SizedBox(height: 10),
-            // Ministers Title
-            Padding(
-              padding: const EdgeInsets.only(left: 10, right: 10),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                width: double.infinity,
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Blue Box with Hindi text
+              Container(
+                margin: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xff1A237E),
-                  borderRadius: BorderRadius.circular(10), // Rounded corners
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF62c0fe), Colors.white],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  border: Border.all(color: const Color(0xff1A237E), width: 3),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Text(
-                  "Hon'ble Ministers",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
+                  'FMISC फ्लड मोबाइल ऐप बाढ़ से संबंधित रियल-टाइम जानकारी, चेतावनियाँ और सुरक्षा युक्तियाँ प्रदान करता है। यह उपयोगकर्ताओं को बाढ़ प्रभावित क्षेत्रों के इंटरैक्टिव मानचित्र, आपातकालीन संपर्क विवरण और स्थानीय अधिकारियों को स्थिति रिपोर्ट करने की सुविधा प्रदान करता है। ',
+                  // यह ऐप नागरिकों, प्रशासन और राहतकर्मियों के लिए उपयोगी है',
+                  style: TextStyle(fontSize: 16, color: Colors.black),
+                  textAlign:
+                      TextAlign
+                          .justify, // Ensures the text stretches across the container
+                  //   textDirection: TextDirection.rtl, // Ensures Hindi text aligns properly
                 ),
               ),
-            ),
-            SizedBox(height: 10),
-            // Minister Cards
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  double screenWidth = constraints.maxWidth;
-
-                  // Determine the number of columns and aspect ratio based on screen width
-                  int crossAxisCount;
-                  double aspectRatio;
-
-                  if (screenWidth < 600) {
-                    // Mobile
-                    crossAxisCount = 2;
-                    aspectRatio = 5.6 / 5;
-                  } else if (screenWidth < 900) {
-                    // Small Tablet
-                    crossAxisCount = 3;
-                    aspectRatio = 3.6 / 4.5;
-                  } else {
-                    // Large Tablet / Desktop
-                    crossAxisCount = 4;
-                    aspectRatio = 2.6 / 4;
-                  }
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: ministers.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: aspectRatio,
-                    ),
-                    itemBuilder: (context, index) {
-                      final minister = ministers[index];
-                      final isWideImage = minister['name'] == 'Yogi Adityanath';
-                      return MinisterCard(
-                        name: minister['name']!,
-                        position: minister['position']!,
-                        imagePath: minister['imagePath']!,
-                        isWideImage: isWideImage,
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 10),
-            // Continue Button
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff1A237E),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+              SizedBox(height: 10),
+              // Ministers Title
+              Padding(
+                padding: const EdgeInsets.only(left: 10, right: 10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xff1A237E),
+                    borderRadius: BorderRadius.circular(10), // Rounded corners
                   ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoginScreen(),
+                  child: const Text(
+                    "Hon'ble Ministers",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+              SizedBox(height: 10),
+              // Minister Cards
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    double screenWidth = constraints.maxWidth;
+
+                    // Determine the number of columns and aspect ratio based on screen width
+                    int crossAxisCount;
+                    double aspectRatio;
+
+                    if (screenWidth < 600) {
+                      // Mobile
+                      crossAxisCount = 2;
+                      aspectRatio = 5.6 / 5;
+                    } else if (screenWidth < 900) {
+                      // Small Tablet
+                      crossAxisCount = 3;
+                      aspectRatio = 3.6 / 4.5;
+                    } else {
+                      // Large Tablet / Desktop
+                      crossAxisCount = 4;
+                      aspectRatio = 2.6 / 4;
+                    }
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: ministers.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: aspectRatio,
                       ),
+                      itemBuilder: (context, index) {
+                        final minister = ministers[index];
+                        final isWideImage =
+                            minister['name'] == 'Yogi Adityanath';
+                        return MinisterCard(
+                          name: minister['name']!,
+                          position: minister['position']!,
+                          imagePath: minister['imagePath']!,
+                          isWideImage: isWideImage,
+                        );
+                      },
                     );
                   },
-                  icon: const Icon(Icons.arrow_forward, color: Colors.white),
-                  label: const Text(
-                    'Continue',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Continue Button
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff1A237E),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.arrow_forward, color: Colors.white),
+                    label: const Text(
+                      'Continue',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
