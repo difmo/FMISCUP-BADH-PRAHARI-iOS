@@ -3,9 +3,52 @@ import 'package:flutter/services.dart';
 import 'package:fmiscupapp2/my_app.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'globalclass.dart';
+import 'data_base/data_helper.dart'; // Your DatabaseHelper
+import 'package:shared_preferences/shared_preferences.dart';
 
-void _listenMethod() {
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  runApp(const MyApp());
+
+  // Initialize plugins safely after runApp
+  _initializeApp();
+}
+
+// --------------------------
+// Initialize Plugins / Channels
+// --------------------------
+Future<void> _initializeApp() async {
+  await _requestNotificationPermission();
+  await _setupPlatformChannels();
+  await _initDatabase();
+  await _initSharedPreferences();
+}
+
+// --------------------------
+// Notification permission
+// --------------------------
+Future<void> _requestNotificationPermission() async {
+  if (await Permission.notification.isDenied) {
+    await Permission.notification.request();
+  }
+}
+
+// --------------------------
+// Platform channels for alarm
+// --------------------------
+Future<void> _setupPlatformChannels() async {
   const methodChannel = MethodChannel("alarm_channel");
+
+  // Request exact alarm permission
+  try {
+    await methodChannel.invokeMethod("requestExactAlarmPermission");
+    await methodChannel.invokeMethod("setAlarms");
+  } catch (e) {
+    debugPrint("Platform channel error: $e");
+  }
+
+  // Listen for native calls
   methodChannel.setMethodCallHandler((call) async {
     if (call.method == "setAlarms") {
       GlobalClass.customToast("Alarm triggered from native!");
@@ -13,22 +56,24 @@ void _listenMethod() {
   });
 }
 
-Future<void> requestNotificationPermission() async {
-  if (await Permission.notification.isDenied) {
-    await Permission.notification.request();
+// --------------------------
+// Database initialization
+// --------------------------
+Future<void> _initDatabase() async {
+  try {
+    await DatabaseHelper.instance;
+  } catch (e) {
+    debugPrint("Database init error: $e");
   }
 }
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await requestNotificationPermission();
-  const methodChannel = MethodChannel("alarm_channel");
+// --------------------------
+// SharedPreferences initialization
+// --------------------------
+Future<void> _initSharedPreferences() async {
   try {
-    await methodChannel.invokeMethod("setAlarms");
-    await methodChannel.invokeMethod("requestExactAlarmPermission");
+    await SharedPreferences.getInstance();
   } catch (e) {
-    debugPrint("Platform channel error: $e");
+    debugPrint("SharedPreferences init error: $e");
   }
-  _listenMethod();
-  runApp(const MyApp());
 }
