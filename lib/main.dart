@@ -3,77 +3,65 @@ import 'package:flutter/services.dart';
 import 'package:fmiscupapp2/my_app.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'globalclass.dart';
-import 'data_base/data_helper.dart'; // Your DatabaseHelper
-import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
+const ALARM_CHANNEL = MethodChannel("alarm_channel");
 
-  runApp(const MyApp());
-
-  // Initialize plugins safely after runApp
-  _initializeApp();
-}
-
-// --------------------------
-// Initialize Plugins / Channels
-// --------------------------
-Future<void> _initializeApp() async {
-  await _requestNotificationPermission();
-  await _setupPlatformChannels();
-  await _initDatabase();
-  await _initSharedPreferences();
-}
-
-// --------------------------
-// Notification permission
-// --------------------------
-Future<void> _requestNotificationPermission() async {
-  if (await Permission.notification.isDenied) {
-    await Permission.notification.request();
-  }
-}
-
-// --------------------------
-// Platform channels for alarm
-// --------------------------
-Future<void> _setupPlatformChannels() async {
-  const methodChannel = MethodChannel("alarm_channel");
-
-  // Request exact alarm permission
-  try {
-    await methodChannel.invokeMethod("requestExactAlarmPermission");
-    await methodChannel.invokeMethod("setAlarms");
-  } catch (e) {
-    debugPrint("Platform channel error: $e");
-  }
-
-  // Listen for native calls
-  methodChannel.setMethodCallHandler((call) async {
+void _listenMethod() {
+  ALARM_CHANNEL.setMethodCallHandler((call) async {
     if (call.method == "setAlarms") {
       GlobalClass.customToast("Alarm triggered from native!");
     }
   });
 }
 
-// --------------------------
-// Database initialization
-// --------------------------
-Future<void> _initDatabase() async {
-  try {
-    await DatabaseHelper.instance;
-  } catch (e) {
-    debugPrint("Database init error: $e");
+Future<void> requestNotificationPermission() async {
+  if (await Permission.notification.isDenied) {
+    await Permission.notification.request();
   }
 }
 
-// --------------------------
-// SharedPreferences initialization
-// --------------------------
-Future<void> _initSharedPreferences() async {
+Future<void> requestExactAlarmPermission() async {
   try {
-    await SharedPreferences.getInstance();
+    await ALARM_CHANNEL.invokeMethod("requestExactAlarmPermission");
   } catch (e) {
-    debugPrint("SharedPreferences init error: $e");
+    debugPrint("Error requesting exact alarm permission: $e");
   }
+}
+
+Future<void> setAlarmsIfPermissionGranted() async {
+  try {
+    // This will only work if user has allowed exact alarms
+    await ALARM_CHANNEL.invokeMethod("setAlarms");
+  } catch (e) {
+    debugPrint("Cannot set alarms yet: $e");
+    GlobalClass.customToast(
+      "Please allow exact alarms in app settings"
+    );
+  }
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await requestNotificationPermission();
+
+  const methodChannel = MethodChannel("alarm_channel");
+
+  try {
+    // 1️⃣ Request exact alarm permission first
+    await methodChannel.invokeMethod("requestExactAlarmPermission");
+
+    // 2️⃣ Wait a little or prompt user to grant permission
+    await Future.delayed(Duration(seconds: 2)); // optional, just to give time
+
+    // 3️⃣ Then set alarms
+    await methodChannel.invokeMethod("setAlarms");
+
+  } catch (e) {
+    debugPrint("Platform channel error: $e");
+  }
+
+  _listenMethod();
+
+  runApp(const MyApp());
 }
