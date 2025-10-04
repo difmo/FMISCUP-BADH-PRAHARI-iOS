@@ -2,14 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fmiscupapp2/globalclass.dart';
 import 'package:fmiscupapp2/seconddashboardscreen.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -50,16 +48,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final otp = (100000 + random.nextInt(900000)).toString();
     _generatedOtp = otp;
     print('otp1233 : $otp');
-
-    final String apiUrl =
-        "https://bulksms.bsnl.in:5010/api/Push_SMS?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6IjExMjI3IDEiLCJuYmYiOjE3NTkzMDc0OTEsImV4cCI6MTc5MDg0MzQ5MSwiaWF0IjoxNzU5MzA3NDkxLCJpc3MiOiJodHRwczovL2J1bGtzbXMuYnNubC5pbjo1MDEwIiwiYXVkIjoiMTEyMjcgMSJ9.fVsQNJxKwmel8pT9QSNwpGXTbih5cZpjo5bQ-Mp2d9k&header=FMISUP&target=$mobileNumber&message=Your%20One%20Time%20Password%20for%20Login%20is%20$otp%0A-%20Flood%20Management%20Info%20Sys%20Centre%20Irrigation%20Department%20UP&type=TXN&templateid=1407175930492674022&entityid=1401706860000076282&unicode=0&flash=0";
-
-    final Uri url = Uri.parse(apiUrl);
-
-    // final Uri url = Uri.parse(
-    //   "https://www.smsjust.com/sms/user/urlsms.php?apikey=6c0384-dd9494-ff97df-fcefc1-14a497&senderid=UPFWBI&dlttempid=1707173503381660952&message=Your%20One-Time%20Password%20(OTP)%20for%20Login%20is%20$otp%20-%20UPFWBI%20&dest_mobileno=$mobileNumber&&response=Y",
-    // );
-
+    final Uri url = Uri.parse(
+      "https://www.smsjust.com/sms/user/urlsms.php?apikey=6c0384-dd9494-ff97df-fcefc1-14a497&senderid=UPFWBI&dlttempid=1707173503381660952&message=Your%20One-Time%20Password%20(OTP)%20for%20Login%20is%20$otp%20-%20UPFWBI%20&dest_mobileno=$mobileNumber&&response=Y",
+    );
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -153,15 +144,6 @@ class _LoginScreenState extends State<LoginScreen> {
               'Data successfully posted to the server after reconnecting!';
         });
       }
-    }
-  }
-
-  Future<void> _launchTermsUrl() async {
-    final Uri url = Uri.parse(
-      'https://fcrupid.fmisc.up.gov.in/privacy-bp.html,',
-    );
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      throw 'Could not launch $url';
     }
   }
 
@@ -491,57 +473,29 @@ class _LoginScreenState extends State<LoginScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  height: 28,
-                                  child: Checkbox(
-                                    value: _termsAccepted,
-                                    onChanged: (bool? value) {
-                                      setState(() {
-                                        _termsAccepted = value!;
-                                        _termsError = null;
-                                      });
-                                    },
-                                  ),
+                                Checkbox(
+                                  value: _termsAccepted,
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      _termsAccepted = value!;
+                                      _termsError =
+                                          null; // clear error on change
+                                    });
+                                  },
                                 ),
                                 Expanded(
-                                  child: GestureDetector(
+                                  child: InkWell(
                                     onTap: () {
                                       setState(() {
                                         _termsAccepted = !_termsAccepted;
-                                        _termsError = null;
+                                        _termsError =
+                                            null; // clear error on tap
                                       });
                                     },
-                                    child: RichText(
-                                      text: TextSpan(
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.black,
-                                        ),
-                                        children: [
-                                          const TextSpan(text: 'I accept the '),
-                                          TextSpan(
-                                            text: 'terms and conditions',
-                                            style: const TextStyle(
-                                              color: Colors.blue,
-                                            ),
-                                            recognizer:
-                                                TapGestureRecognizer()
-                                                  ..onTap = _launchTermsUrl,
-                                          ),
-                                          const TextSpan(text: ' and '),
-                                          TextSpan(
-                                            text: 'privacy policy',
-                                            style: const TextStyle(
-                                              color: Colors.blue,
-                                            ),
-                                            recognizer:
-                                                TapGestureRecognizer()
-                                                  ..onTap = _launchTermsUrl,
-                                          ),
-                                        ],
-                                      ),
+                                    child: const Text(
+                                      "I accept the terms and conditions",
+                                      style: TextStyle(fontSize: 12),
                                     ),
                                   ),
                                 ),

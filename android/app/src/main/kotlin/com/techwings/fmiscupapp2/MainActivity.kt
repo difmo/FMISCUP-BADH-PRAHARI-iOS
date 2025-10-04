@@ -62,11 +62,21 @@ class MainActivity : FlutterActivity() {
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "setAlarms" -> {
-                    //setScheduledAlarms()
-                    val scheduler = AlarmScheduler(this)
-                    scheduler.setScheduledAlarms()
-                    result.success("Alarms Alarms_set")
-                }
+    val scheduler = AlarmScheduler(this)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (alarmManager.canScheduleExactAlarms()) {
+            scheduler.setScheduledAlarms()
+            result.success("Alarms set")
+        } else {
+            result.error("PERMISSION_DENIED", "Exact alarm permission not granted", null)
+        }
+    } else {
+        scheduler.setScheduledAlarms()
+        result.success("Alarms set")
+    }
+}
+
 
                 "requestExactAlarmPermission" -> {
                     requestExactAlarmPermission(this)
