@@ -9,7 +9,8 @@
     <application
         android:name="${applicationName}"
         android:icon="@mipmap/logo"
-        android:label="Badh Prahari">
+        android:label="Badh Prahari"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:allowBackup="false"

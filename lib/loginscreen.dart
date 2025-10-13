@@ -87,9 +87,14 @@ class _LoginScreenState extends State<LoginScreen> {
     _start = 30;
     _timer?.cancel();
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
       if (_start == 0) {
         timer.cancel();
-        setState(() {});
+        setState(() {}); // safe now because we checked mounted
       } else {
         setState(() {
           _start--;
@@ -290,6 +295,18 @@ class _LoginScreenState extends State<LoginScreen> {
     _loadSavedCredentials();
     _syncData();
     _isOnline();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    for (final controller in _otpControllers) {
+      controller.dispose();
+    }
+    for (final node in _focusNodes) {
+      node.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _loadSavedCredentials() async {

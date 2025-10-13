@@ -34,6 +34,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
   @override
   void initState() {
     super.initState();
+    _selectedDatedropdown = DateTime.now();
     _initializeData();
   }
 
@@ -462,7 +463,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
               controller: dischargeController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                hintText: 'Discharge',
+                hintText: 'Discharge (in cusec)',
                 border: OutlineInputBorder(),
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(
@@ -479,7 +480,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
               controller: rainController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                hintText: 'Rain',
+                hintText: 'Rain (in mm)',
                 border: OutlineInputBorder(),
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(
@@ -496,47 +497,47 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: () async {
-                      final selected = await showModalBottomSheet<String>(
-                        backgroundColor: Colors.white,
-                        showDragHandle: true,
-                        context: context,
-                        isScrollControlled: true, // allows custom height
-                        builder:
-                            (context) => SizedBox(
-                              height:
-                                  MediaQuery.of(context).size.height *
-                                  0.4, // 40% of screen
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  ListTile(
-                                    title: const Text('Today'),
-                                    onTap:
-                                        () => Navigator.pop(context, 'today'),
-                                  ),
-                                  // ListTile(
-                                  //   title: const Text('Yesterday'),
-                                  //   onTap:
-                                  //       () => Navigator.pop(context, 'yesterday'),
-                                  // ),
-                                ],
-                              ),
-                            ),
-                      );
+                    // onTap: () async {
+                    //   final selected = await showModalBottomSheet<String>(
+                    //     backgroundColor: Colors.white,
+                    //     showDragHandle: true,
+                    //     context: context,
+                    //     isScrollControlled: true, // allows custom height
+                    //     builder:
+                    //         (context) => SizedBox(
+                    //           height:
+                    //               MediaQuery.of(context).size.height *
+                    //               0.4, // 40% of screen
+                    //           child: Column(
+                    //             mainAxisSize: MainAxisSize.min,
+                    //             children: [
+                    //               ListTile(
+                    //                 title: const Text('Today'),
+                    //                 onTap:
+                    //                     () => Navigator.pop(context, 'today'),
+                    //               ),
+                    //               // ListTile(
+                    //               //   title: const Text('Yesterday'),
+                    //               //   onTap:
+                    //               //       () => Navigator.pop(context, 'yesterday'),
+                    //               // ),
+                    //             ],
+                    //           ),
+                    //         ),
+                    //   );
 
-                      if (selected != null && context.mounted) {
-                        setState(() {
-                          _selectedDatedropdown =
-                              selected == 'today'
-                                  ? DateTime.now()
-                                  : DateTime.now().subtract(
-                                    const Duration(days: 1),
-                                  );
-                        });
-                        await fetchTimeSlots();
-                      }
-                    },
+                    //   if (selected != null && context.mounted) {
+                    //     setState(() {
+                    //       _selectedDatedropdown =
+                    //           selected == 'today'
+                    //               ? DateTime.now()
+                    //               : DateTime.now().subtract(
+                    //                 const Duration(days: 1),
+                    //               );
+                    //     });
+                    //     await fetchTimeSlots();
+                    //   }
+                    // },
                     child: Container(
                       height: 45,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -553,7 +554,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
                                 : '${_selectedDatedropdown!.day}/${_selectedDatedropdown!.month}/${_selectedDatedropdown!.year}',
                             style: const TextStyle(fontSize: 15),
                           ),
-                          const Icon(Icons.arrow_drop_down),
+                          // const Icon(Icons.arrow_drop_down),
                         ],
                       ),
                     ),
