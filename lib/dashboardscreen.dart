@@ -124,17 +124,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     },
     {
       'name': 'Shri Swatantra Dev Singh',
-      'position': 'Hon\'ble Cabinet Minister\nJai Shakti, Uttar Pradesh',
+      'position': 'Hon\'ble Cabinet Minister\nJal Shakti, Uttar Pradesh',
       'imagePath': 'assets/image/swatantra.jpg',
     },
     {
       'name': 'Shri Dinesh Khateek',
-      'position': 'Hon\'ble Minister of State\nJai Shakti, Uttar Pradesh',
+      'position': 'Hon\'ble Minister of State\nJal Shakti, Uttar Pradesh',
       'imagePath': 'assets/image/dinesh.jpg',
     },
     {
       'name': 'Shri Ramkesh Nishad',
-      'position': 'Hon\'ble Minister of State\nJai Shakti, Uttar Pradesh',
+      'position': 'Hon\'ble Minister of State\nJal Shakti, Uttar Pradesh',
       'imagePath': 'assets/image/ramkesh.jpg',
     },
   ];
