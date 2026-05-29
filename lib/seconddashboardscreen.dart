@@ -198,6 +198,50 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
     );
   }
 
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: Colors.white,
+            title: const Text(
+              "Logout",
+              style: TextStyle(color: Color(0xff1A237E), fontWeight: FontWeight.bold),
+            ),
+            content: const Text(
+              "Are you sure you want to logout?",
+              style: TextStyle(color: Colors.black),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('isLoggedIn', false);
+                  if (context.mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DashboardScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                },
+                child: const Text(
+                  "Logout",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
   Future<void> updateFloodData(BuildContext context, bool isInsert) async {
     if (gaugeController.text.isEmpty ||
         dischargeController.text.isEmpty ||
@@ -417,14 +461,9 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.login, color: Colors.white),
+              icon: const Icon(Icons.logout, color: Colors.white),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DashboardScreen(),
-                  ),
-                );
+                _showLogoutDialog(context);
               },
             ),
           ],

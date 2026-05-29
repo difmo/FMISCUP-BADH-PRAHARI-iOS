@@ -113,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void verifyOtp() {
+  void verifyOtp() async {
     String enteredOtp =
         _otpControllers.map((controller) => controller.text).join();
     if (enteredOtp == _generatedOtp || enteredOtp == '202526') {
@@ -125,21 +125,28 @@ class _LoginScreenState extends State<LoginScreen> {
         _message = 'OTP Verified ✅';
       });
 
-      Navigator.push<bool>(
-        context,
-        MaterialPageRoute(builder: (context) => Seconddashboardscreen()),
-      ).then((value) {
-        if (value == true) {
-          setState(() {
-            _isOtpInputVisible = false;
-            _isOtpVerified = false;
-            _message = '';
-            for (var controller in _otpControllers) {
-              controller.clear();
-            }
-          });
-        }
-      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+
+      if (mounted) {
+        Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const Seconddashboardscreen(),
+          ),
+        ).then((value) {
+          if (value == true) {
+            setState(() {
+              _isOtpInputVisible = false;
+              _isOtpVerified = false;
+              _message = '';
+              for (var controller in _otpControllers) {
+                controller.clear();
+              }
+            });
+          }
+        });
+      }
     } else {
       setState(() {
         _message = 'Invalid OTP. Please try again.';

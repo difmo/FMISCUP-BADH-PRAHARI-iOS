@@ -5,6 +5,8 @@ import 'package:fmiscupapp2/globalclass.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'entity/station_data.dart';
 import 'loginscreen.dart';
+import 'seconddashboardscreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
 void main() {
@@ -305,13 +307,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LoginScreen(),
-                        ),
-                      );
+                    onPressed: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+                      if (context.mounted) {
+                        if (isLoggedIn) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const Seconddashboardscreen(),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginScreen(),
+                            ),
+                          );
+                        }
+                      }
                     },
                     icon: const Icon(Icons.arrow_forward, color: Colors.white),
                     label: const Text(
