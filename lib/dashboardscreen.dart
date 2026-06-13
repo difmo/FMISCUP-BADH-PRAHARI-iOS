@@ -251,44 +251,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   builder: (context, constraints) {
                     double screenWidth = constraints.maxWidth;
 
-                    // Determine the number of columns and aspect ratio based on screen width
                     int crossAxisCount;
-                    double aspectRatio;
-
                     if (screenWidth < 600) {
-                      // Mobile
                       crossAxisCount = 2;
-                      aspectRatio = 5.6 / 5;
                     } else if (screenWidth < 900) {
-                      // Small Tablet
                       crossAxisCount = 3;
-                      aspectRatio = 3.6 / 4.5;
                     } else {
-                      // Large Tablet / Desktop
                       crossAxisCount = 4;
-                      aspectRatio = 2.6 / 4;
                     }
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: ministers.length,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: aspectRatio,
-                      ),
-                      itemBuilder: (context, index) {
-                        final minister = ministers[index];
-                        final isWideImage =
-                            minister['name'] == 'Yogi Adityanath';
-                        return MinisterCard(
-                          name: minister['name']!,
-                          position: minister['position']!,
-                          imagePath: minister['imagePath']!,
-                          isWideImage: isWideImage,
-                        );
-                      },
+
+                    List<List<Map<String, String>>> rows = [];
+                    for (int i = 0; i < ministers.length; i += crossAxisCount) {
+                      int end = i + crossAxisCount;
+                      if (end > ministers.length) {
+                        end = ministers.length;
+                      }
+                      rows.add(ministers.sublist(i, end));
+                    }
+
+                    return Column(
+                      children:
+                          rows.asMap().entries.map((entry) {
+                            int rowIndex = entry.key;
+                            List<Map<String, String>> rowItems = entry.value;
+
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                bottom: rowIndex == rows.length - 1 ? 0 : 12,
+                              ),
+                              child: IntrinsicHeight(
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: List.generate(crossAxisCount, (
+                                    colIndex,
+                                  ) {
+                                    Widget childWidget;
+                                    if (colIndex < rowItems.length) {
+                                      final minister = rowItems[colIndex];
+                                      final isWideImage =
+                                          minister['name'] == 'Yogi Adityanath';
+                                      childWidget = MinisterCard(
+                                        name: minister['name']!,
+                                        position: minister['position']!,
+                                        imagePath: minister['imagePath']!,
+                                        isWideImage: isWideImage,
+                                      );
+                                    } else {
+                                      childWidget = const SizedBox.shrink();
+                                    }
+
+                                    return Expanded(
+                                      child: Padding(
+                                        padding: EdgeInsets.only(
+                                          left: colIndex == 0 ? 0 : 6,
+                                          right:
+                                              colIndex == crossAxisCount - 1
+                                                  ? 0
+                                                  : 6,
+                                        ),
+                                        child: childWidget,
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              ),
+                            );
+                          }).toList(),
                     );
                   },
                 ),
@@ -315,7 +344,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const Seconddashboardscreen(),
+                              builder:
+                                  (context) => const Seconddashboardscreen(),
                             ),
                           );
                         } else {
@@ -358,12 +388,22 @@ class MinisterCard extends StatelessWidget {
     this.isWideImage = false,
   });
 
+  String _formatText(String text) {
+    List<String> words = text.split(' ');
+    if (words.length <= 1) return text;
+    if (words.length == 3) {
+      return '${words[0]} ${words[1]}\n${words[2]}';
+    }
+    int mid = words.length ~/ 2;
+    return '${words.sublist(0, mid).join(' ')}\n${words.sublist(mid).join(' ')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     return Container(
       width: screenWidth * 0.4,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF62c0fe), Colors.white],
@@ -377,6 +417,7 @@ class MinisterCard extends StatelessWidget {
         ),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(2),
@@ -388,28 +429,33 @@ class MinisterCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
               child: Image.asset(
                 imagePath,
-                width: isWideImage ? 100 : 70,
-                height: isWideImage ? 89 : 70,
+                width: isWideImage ? 120 : 80,
+                height: isWideImage ? 95 : 80,
                 fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
               ),
             ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 4),
           Text(
-            name,
+            _formatText(name),
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.w700,
               fontSize: screenWidth * 0.030,
               color: Colors.black,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
               position,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.poppins(
                 fontSize: screenWidth * 0.023,
                 fontWeight: FontWeight.w600,
