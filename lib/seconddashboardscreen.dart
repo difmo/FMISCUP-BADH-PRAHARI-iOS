@@ -483,7 +483,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: TextField(
               controller: gaugeController,
-              keyboardType: TextInputType.number,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
                 hintText: 'Gauge (Downstream)',
                 border: OutlineInputBorder(),
@@ -500,7 +500,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: TextField(
               controller: dischargeController,
-              keyboardType: TextInputType.number,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
                 hintText: 'Discharge (in cusec)',
                 border: OutlineInputBorder(),
@@ -517,7 +517,7 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: TextField(
               controller: rainController,
-              keyboardType: TextInputType.number,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
                 hintText: 'Rain (in mm)',
                 border: OutlineInputBorder(),
