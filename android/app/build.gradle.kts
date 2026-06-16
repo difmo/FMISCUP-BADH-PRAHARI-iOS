@@ -35,8 +35,8 @@ android {
         applicationId = "com.techwings.fmiscupapp2"
         minSdk = 26
         targetSdk = 35
-        versionCode = 16
-        versionName = "1.0.16x"
+        versionCode = 17
+        versionName = "1.0.17"
     }
 
     signingConfigs {
