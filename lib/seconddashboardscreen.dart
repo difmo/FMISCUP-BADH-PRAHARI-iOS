@@ -151,16 +151,20 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
 
   Future<void> validateAndSubmit(BuildContext context) async {
     final double? gauge = double.tryParse(gaugeController.text);
-    final double? discharge = double.tryParse(dischargeController.text);
-    if (gauge == null || discharge == null) {
-      _showMessage(context, "Please enter valid Gauge and Discharge values.");
+    if (gauge == null) {
+      _showMessage(context, "Please enter a valid Gauge value.");
       return;
     }
     if (maxFloodLevel != null && gauge > maxFloodLevel!) {
       _showMessage(context, "Gauge exceeds maxFloodLevel ($maxFloodLevel)");
       return;
     }
-    if (maxDischarge != null && discharge > maxDischarge!) {
+    final double? discharge = double.tryParse(dischargeController.text);
+    if (dischargeController.text.isNotEmpty && discharge == null) {
+      _showMessage(context, "Please enter a valid Discharge value.");
+      return;
+    }
+    if (maxDischarge != null && discharge != null && discharge > maxDischarge!) {
       _showMessage(context, "Discharge exceeds maxDischarge ($maxDischarge)");
       return;
     }
@@ -244,11 +248,9 @@ class _SeconddashboardscreenState extends State<Seconddashboardscreen> {
 
   Future<void> updateFloodData(BuildContext context, bool isInsert) async {
     if (gaugeController.text.isEmpty ||
-        dischargeController.text.isEmpty ||
-        rainController.text.isEmpty ||
         _selectedTime == null ||
         _selectedDatedropdown == null) {
-      _showDialog(context, "Error", "All fields are required.", false);
+      _showDialog(context, "Error", "Gauge, Date and Time are required.", false);
       return;
     }
 

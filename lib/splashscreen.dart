@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'DebugmodeScreen.dart';
 import 'dashboardscreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,6 +30,15 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   static Future<void> checkDeveloperMode(BuildContext context) async {
+    if (kDebugMode) {
+      // ✅ Skip developer mode check in debug mode
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      );
+      return;
+    }
+
     if (!Platform.isAndroid) {
       // ✅ Skip check on iOS
       Navigator.pushReplacement(
